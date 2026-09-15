@@ -126,6 +126,15 @@ typedef enum
     INVALID_ARGUMENT, // One or more arguments are invalid or null
     OPEN_FAILED, // Failed to open the file (with fopen)
     ALLOC_FAILED, // Failed to allocate memory for the file content (with malloc)
+
+    VALIDATION_ERROR_NULL,
+    VALIDATION_ERROR_BOOLEAN,
+    VALIDATION_ERROR_RANGE,
+    VALIDATION_ERROR_NEGATIVE,
+    VALIDATION_ERROR_STRING,
+    VALIDATION_ERROR_ID,
+    VALIDATION_ERROR_ENUM,
+    VALIDATION_ERROR_INCONSISTENT,
 } OpResult;
 
 #pragma region Utility functions

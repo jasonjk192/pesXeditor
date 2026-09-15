@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../src/editor.h"
 #include <stdint.h>
 
 #ifdef _WIN32
@@ -222,6 +223,10 @@ extern "C" {
 	EDITOR_EXPORT void editor_freeDescriptorOld(FileDescriptorOld* descriptor);
 	EDITOR_EXPORT void editor_freeDescriptor15(FileDescriptor15* descriptor);
 
+	EDITOR_EXPORT OpResult editor_validateSinglePlayerEntry(editor_player_entry* player, uint8_t* version);
+	EDITOR_EXPORT OpResult editor_validateSingleTeamEntry(editor_team_entry* teams, uint8_t* version);
+	EDITOR_EXPORT OpResult editor_validateData(editor_player_entry* players, int numPlayers, editor_team_entry* teams, int numTeams, uint8_t* version);
+
 #pragma endregion
 
 #pragma region PES15
@@ -242,7 +247,7 @@ extern "C" {
 #pragma region PES17
 
 	EDITOR_EXPORT OpResult editor_readFile17(const char* path, FileDescriptorOld** outDescriptor);
-	EDITOR_EXPORT OpResult editor_loadData17(const char* path, FileDescriptorOld** descriptor, editor_player_entry** outPlayers, uint32_t* outNumPlayers, editor_team_entry** outTeams, uint32_t* outNumTeams);
+	EDITOR_EXPORT OpResult editor_loadData17(const char* path, FileDescriptorOld** outDescriptor, editor_player_entry** outPlayers, uint32_t* outNumPlayers, editor_team_entry** outTeams, uint32_t* outNumTeams);
 	EDITOR_EXPORT OpResult editor_saveData17(const char* path, FileDescriptorOld* descriptor, editor_player_entry* players, editor_team_entry* teams);
 
 	EDITOR_EXPORT int editor_fill_player_entry17(editor_player_entry* player, void* descriptor);
@@ -253,6 +258,14 @@ extern "C" {
 	EDITOR_EXPORT int editor_extract_team_info17(editor_team_entry* team, void* descriptor);
 	EDITOR_EXPORT int editor_extract_teamplayer_info17(editor_team_entry* team, void* descriptor);
 	EDITOR_EXPORT int editor_extract_team_tactics17(editor_team_entry* team, void* descriptor);
+
+#pragma endregion
+
+#pragma region PES21
+
+	EDITOR_EXPORT OpResult editor_readFile21(const char* path, FileDescriptorNew** outDescriptor);
+	EDITOR_EXPORT OpResult editor_loadData21(const char* path, FileDescriptorNew** outDescriptor, editor_player_entry** outPlayers, uint32_t* outNumPlayers, editor_team_entry** outTeams, uint32_t* outNumTeams);
+	EDITOR_EXPORT OpResult editor_saveData21(const char* path, FileDescriptorNew* descriptor, editor_player_entry* players, editor_team_entry* teams);
 
 #pragma endregion
 
