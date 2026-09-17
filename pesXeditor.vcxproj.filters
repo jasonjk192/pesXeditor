@@ -39,6 +39,15 @@
     <ClCompile Include="dll\dll.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="dll\validator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dll\cache.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="dll\custom_format.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="src\editor.h">
@@ -48,6 +57,15 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="dll\dll.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dll\validator.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dll\cache.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="dll\custom_format.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

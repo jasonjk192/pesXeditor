@@ -1,5 +1,8 @@
 #pragma once
 
+#include "masterkey.h"
+#include "crypt.h"
+
 #include "../src/editor.h"
 #include <stdint.h>
 
@@ -12,6 +15,28 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+	enum class EditorOpResult
+	{
+		UNKNOWN = CrypterOpResult::UNKNOWN,
+		OK = CrypterOpResult::OK,
+		READ_FILE_STAT_FAILED = CrypterOpResult::READ_FILE_STAT_FAILED,
+		INVALID_ARGUMENT = CrypterOpResult::INVALID_ARGUMENT,
+		OPEN_FAILED = CrypterOpResult::OPEN_FAILED,
+		ALLOC_FAILED = CrypterOpResult::ALLOC_FAILED,
+
+		OUT_OF_RANGE,
+		NOT_FOUND,
+
+		VALIDATION_ERROR_NULL,
+		VALIDATION_ERROR_BOOLEAN,
+		VALIDATION_ERROR_RANGE,
+		VALIDATION_ERROR_NEGATIVE,
+		VALIDATION_ERROR_STRING,
+		VALIDATION_ERROR_ID,
+		VALIDATION_ERROR_ENUM,
+		VALIDATION_ERROR_INCONSISTENT,
+	};
 
 #pragma region Structs
 
@@ -217,16 +242,13 @@ extern "C" {
 
 #pragma region General
 
-	EDITOR_EXPORT OpResult editor_readFile(const char* path, uint8_t** outData, uint32_t* sizePtr);
+	EDITOR_EXPORT EditorOpResult editor_readFile(const char* path, uint8_t** outData, uint32_t* sizePtr);
 	EDITOR_EXPORT void editor_freeData(editor_player_entry* players, editor_team_entry* teams);
 	EDITOR_EXPORT void editor_freeDescriptorNew(FileDescriptorNew* descriptor);
 	EDITOR_EXPORT void editor_freeDescriptorOld(FileDescriptorOld* descriptor);
 	EDITOR_EXPORT void editor_freeDescriptor15(FileDescriptor15* descriptor);
 
-	EDITOR_EXPORT OpResult editor_validateSinglePlayerEntry(editor_player_entry* player, uint8_t* version);
-	EDITOR_EXPORT OpResult editor_validateSingleTeamEntry(editor_team_entry* teams, uint8_t* version);
-	EDITOR_EXPORT OpResult editor_validateData(editor_player_entry* players, int numPlayers, editor_team_entry* teams, int numTeams, uint8_t* version);
-
+	
 #pragma endregion
 
 #pragma region PES15
@@ -246,9 +268,9 @@ extern "C" {
 
 #pragma region PES17
 
-	EDITOR_EXPORT OpResult editor_readFile17(const char* path, FileDescriptorOld** outDescriptor);
-	EDITOR_EXPORT OpResult editor_loadData17(const char* path, FileDescriptorOld** outDescriptor, editor_player_entry** outPlayers, uint32_t* outNumPlayers, editor_team_entry** outTeams, uint32_t* outNumTeams);
-	EDITOR_EXPORT OpResult editor_saveData17(const char* path, FileDescriptorOld* descriptor, editor_player_entry* players, editor_team_entry* teams);
+	EDITOR_EXPORT EditorOpResult editor_readFile17(const char* path, FileDescriptorOld** outDescriptor);
+	EDITOR_EXPORT EditorOpResult editor_loadData17(const char* path, FileDescriptorOld** outDescriptor, editor_player_entry** outPlayers, uint32_t* outNumPlayers, editor_team_entry** outTeams, uint32_t* outNumTeams);
+	EDITOR_EXPORT EditorOpResult editor_saveData17(const char* path, FileDescriptorOld* descriptor, editor_player_entry* players, editor_team_entry* teams);
 
 	EDITOR_EXPORT int editor_fill_player_entry17(editor_player_entry* player, void* descriptor);
 	EDITOR_EXPORT int editor_fill_team_ids17(editor_team_entry* team, void* descriptor);
@@ -263,9 +285,9 @@ extern "C" {
 
 #pragma region PES21
 
-	EDITOR_EXPORT OpResult editor_readFile21(const char* path, FileDescriptorNew** outDescriptor);
-	EDITOR_EXPORT OpResult editor_loadData21(const char* path, FileDescriptorNew** outDescriptor, editor_player_entry** outPlayers, uint32_t* outNumPlayers, editor_team_entry** outTeams, uint32_t* outNumTeams);
-	EDITOR_EXPORT OpResult editor_saveData21(const char* path, FileDescriptorNew* descriptor, editor_player_entry* players, editor_team_entry* teams);
+	EDITOR_EXPORT EditorOpResult editor_readFile21(const char* path, FileDescriptorNew** outDescriptor);
+	EDITOR_EXPORT EditorOpResult editor_loadData21(const char* path, FileDescriptorNew** outDescriptor, editor_player_entry** outPlayers, uint32_t* outNumPlayers, editor_team_entry** outTeams, uint32_t* outNumTeams);
+	EDITOR_EXPORT EditorOpResult editor_saveData21(const char* path, FileDescriptorNew* descriptor, editor_player_entry* players, editor_team_entry* teams);
 
 #pragma endregion
 

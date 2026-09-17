@@ -1,6 +1,9 @@
-#include "masterkey.h"
-#include "crypt.h"
 #include "dll.h"
+
+inline static EditorOpResult to_EditorOpResult(CrypterOpResult r)
+{
+	return static_cast<EditorOpResult>(r);
+}
 
 #pragma region Structs
 
@@ -430,122 +433,12 @@ team_entry editor_team_entry::to_team_entry() const
 
 #pragma endregion
 
-#pragma region Validation
-
-static inline OpResult validate_bool(uint8_t v)
-{
-	return (v <= 1) ? OpResult::OK : OpResult::VALIDATION_ERROR_BOOLEAN;
-}
-
-static inline OpResult validate_stat(uint8_t v)
-{
-	return (v >= 40 && v <= 99) ? OpResult::OK : OpResult::VALIDATION_ERROR_RANGE;
-}
-
-static inline OpResult validate_stat(uint8_t v, uint8_t inclusive_min, uint8_t inclusive_max)
-{
-	return (v >= inclusive_min && v <= inclusive_max) ? OpResult::OK : OpResult::VALIDATION_ERROR_RANGE;
-}
-
-static inline OpResult validate_stat_0_99(uint8_t v)
-{
-	// Useful for fields where 0 may represent "unset"/default.
-	return (v <= 99) ? OpResult::OK : OpResult::VALIDATION_ERROR_RANGE;
-}
-
-static inline OpResult validate_non_negative(int32_t v)
-{
-	return (v >= 0) ? OpResult::OK : OpResult::VALIDATION_ERROR_NEGATIVE;
-}
-
-static inline OpResult validate_string(uint16_t* v, uint8_t l)
-{
-	bool name_terminated = false;
-	for (size_t i = 0; i < l; ++i)
-	{
-		if (v[i] == 0)
-		{
-			name_terminated = true;
-			break;
-		}
-	}
-	if (!name_terminated)
-		return OpResult::VALIDATION_ERROR_STRING;
-	return OpResult::OK;
-}
-
-static inline OpResult validate_string(char* v, uint8_t l)
-{
-	bool name_terminated = false;
-	for (size_t i = 0; i < l; ++i)
-	{
-		if (v[i] == 0)
-		{
-			name_terminated = true;
-			break;
-		}
-	}
-	if (!name_terminated)
-		return OpResult::VALIDATION_ERROR_STRING;
-	return OpResult::OK;
-}
-
-static inline OpResult validate_array_0_99(const uint8_t* values, size_t count)
-{
-	for (size_t i = 0; i < count; ++i)
-	{
-		if (values[i] > 99)
-			return OpResult::VALIDATION_ERROR_RANGE;
-	}
-	return OpResult::OK;
-}
-
-static OpResult validate_height_weight(uint8_t* height, uint8_t* weight, uint8_t* version)
-{
-	switch (*version)
-	{
-	case 15: // unsure 
-		break;
-	case 16:
-	case 17:
-		if (*height < 155 || *height > 210) 
-			return OpResult::VALIDATION_ERROR_RANGE;
-		if(*weight < max(30, *height - 129) || *weight > *height - 81)
-			return OpResult::VALIDATION_ERROR_RANGE;
-		break;
-	case 18: 
-		if (*height < 138 || *height > 210)
-			return OpResult::VALIDATION_ERROR_RANGE;
-		if (*weight < max(30, *height - 129) || *weight > *height - 81)
-			return OpResult::VALIDATION_ERROR_RANGE;
-		break;
-	case 19:
-	case 20:
-	case 21: 
-		if (*height < 155 || *height > 210)
-			return OpResult::VALIDATION_ERROR_RANGE;
-		if (*weight < max(30, *height - 129) || *weight > *height - 81)
-			return OpResult::VALIDATION_ERROR_RANGE;
-		break;
-	}
-	return OpResult::OK;
-}
-
-static OpResult validate_age(uint8_t* age, uint8_t* version)
-{
-	uint8_t value = *age;
-	if (value < 15 || value > 50)
-		return OpResult::VALIDATION_ERROR_RANGE;
-	return OpResult::OK;
-}
-
-#pragma endregion
-
 #pragma region General
 
-EDITOR_EXPORT OpResult editor_readFile(const char* path, uint8_t** outData, uint32_t* sizePtr)
+EDITOR_EXPORT EditorOpResult editor_readFile(const char* path, uint8_t** outData, uint32_t* sizePtr)
 {
-	return readFile(path, outData, sizePtr);
+	CrypterOpResult result = readFile(path, outData, sizePtr);
+	return static_cast<EditorOpResult>(result);
 }
 
 EDITOR_EXPORT void editor_freeData(editor_player_entry* players, editor_team_entry* teams)
@@ -569,243 +462,6 @@ EDITOR_EXPORT void editor_freeDescriptor15(FileDescriptor15* descriptor)
 	destroyFileDescriptor15(descriptor);
 }
 
-EDITOR_EXPORT OpResult editor_validateSinglePlayerEntry(editor_player_entry* player, uint8_t* version)
-{
-	if (!player)
-		return OpResult::VALIDATION_ERROR_NULL;
-
-	editor_player_export p = player->data;
-	//if (player->id == 0)
-	//	return OpResult::VALIDATION_ERROR_ID;
-
-	//if (player->app_id == 0)
-	//	return OpResult::VALIDATION_ERROR_ID;
-
-	if (player->b_changed > 1)
-		return OpResult::VALIDATION_ERROR_BOOLEAN;
-
-	if (player->b_show > 1)
-		return OpResult::VALIDATION_ERROR_BOOLEAN;
-
-	if (player->team_ind < 0 || player->team_lineup_ind < 0)
-		return OpResult::VALIDATION_ERROR_NEGATIVE;
-
-	if (validate_height_weight(&p.height, &p.weight, version) != OpResult::OK)
-		return OpResult::VALIDATION_ERROR_RANGE;
-
-	if (validate_age(&p.age, version) != OpResult::OK)
-		return OpResult::VALIDATION_ERROR_RANGE;
-
-	// ------------------------------------------------------------
-	// Player abilities
-
-#define VALIDATE_STAT(field)                                      \
-    do {                                                          \
-        OpResult r = validate_stat(p.field);                     \
-        if (r != OpResult::OK)                                    \
-            return r;                                             \
-    } while (0)
-
-#define VALIDATE_STAT_RANGE(field, i_min, i_max)                  \
-    do {                                                          \
-        OpResult r = validate_stat(p.field, i_min, i_max);        \
-        if (r != OpResult::OK)                                    \
-            return r;                                             \
-    } while (0)
-
-	VALIDATE_STAT(atk);
-	VALIDATE_STAT(def);
-	VALIDATE_STAT(gk);
-	VALIDATE_STAT(drib);
-	VALIDATE_STAT(mo_fk);
-	VALIDATE_STAT(finish);
-	VALIDATE_STAT(lowpass);
-	VALIDATE_STAT(loftpass);
-	VALIDATE_STAT(header);
-	VALIDATE_STAT(form);
-
-	VALIDATE_STAT(swerve);
-	VALIDATE_STAT(catching);
-	VALIDATE_STAT(clearing);
-	VALIDATE_STAT(reflex);
-	VALIDATE_STAT(injury);
-
-	VALIDATE_STAT(body_ctrl);
-	VALIDATE_STAT(phys_cont);
-	VALIDATE_STAT(kick_pwr);
-	VALIDATE_STAT(exp_pwr);
-
-	VALIDATE_STAT(ball_ctrl);
-	VALIDATE_STAT(ball_win);
-	VALIDATE_STAT_RANGE(weak_acc, 0, 3);
-	VALIDATE_STAT(jump);
-
-	VALIDATE_STAT_RANGE(mo_armr, 0, 7);
-	VALIDATE_STAT_RANGE(mo_ck, 0, 5);
-	VALIDATE_STAT(cover);
-	VALIDATE_STAT_RANGE(weak_use, 0, 3);
-
-	VALIDATE_STAT(place_kick);
-
-	VALIDATE_STAT(stamina);
-	VALIDATE_STAT(speed);
-
-	VALIDATE_STAT(tight_pos);
-	VALIDATE_STAT(aggres);
-	VALIDATE_STAT(play_attit);
-
-#undef VALIDATE_STAT
-
-
-	// ------------------------------------------------------------
-	// Boolean/edit flags
-
-#define VALIDATE_BOOL(field)                                     \
-    do {                                                          \
-        OpResult r = validate_bool(p.field);                     \
-        if (r != OpResult::OK)                                    \
-            return r;                                             \
-    } while (0)
-
-	VALIDATE_BOOL(b_edit_player);
-	VALIDATE_BOOL(b_edit_basicset);
-	VALIDATE_BOOL(b_edit_regpos);
-	VALIDATE_BOOL(b_edit_playpos);
-	VALIDATE_BOOL(b_edit_ability);
-	VALIDATE_BOOL(b_edit_skill);
-	VALIDATE_BOOL(b_edit_style);
-	VALIDATE_BOOL(b_edit_com);
-	VALIDATE_BOOL(b_edit_motion);
-	VALIDATE_BOOL(b_base_copy);
-	VALIDATE_BOOL(b_edit_face);
-	VALIDATE_BOOL(b_edit_hair);
-	VALIDATE_BOOL(b_edit_phys);
-	VALIDATE_BOOL(b_edit_strip);
-
-#undef VALIDATE_BOOL
-
-
-	// ------------------------------------------------------------
-	// Arrays
-
-	for (size_t i = 0; i < 13; ++i)
-	{
-		if (p.play_pos[i] > 99)
-			return OpResult::VALIDATION_ERROR_ENUM;
-	}
-
-	for (size_t i = 0; i < 7; ++i)
-	{
-		if (p.com_style[i] > 99)
-			return OpResult::VALIDATION_ERROR_ENUM;
-	}
-
-	for (size_t i = 0; i < 41; ++i)
-	{
-		if (p.play_skill[i] > 99)
-			return OpResult::VALIDATION_ERROR_ENUM;
-	}
-
-
-	// ------------------------------------------------------------
-	// Signed physique values
-
-#define VALIDATE_NON_NEGATIVE(field)                             \
-    do {                                                          \
-        OpResult r = validate_non_negative(p.field);             \
-        if (r != OpResult::OK)                                    \
-            return r;                                             \
-    } while (0)
-
-	VALIDATE_NON_NEGATIVE(neck_len);
-	VALIDATE_NON_NEGATIVE(neck_size);
-	VALIDATE_NON_NEGATIVE(shldr_hi);
-	VALIDATE_NON_NEGATIVE(shldr_wid);
-	VALIDATE_NON_NEGATIVE(chest);
-	VALIDATE_NON_NEGATIVE(waist);
-	VALIDATE_NON_NEGATIVE(arm_size);
-	VALIDATE_NON_NEGATIVE(arm_len);
-	VALIDATE_NON_NEGATIVE(thigh);
-	VALIDATE_NON_NEGATIVE(calf);
-	VALIDATE_NON_NEGATIVE(leg_len);
-	VALIDATE_NON_NEGATIVE(head_len);
-	VALIDATE_NON_NEGATIVE(head_wid);
-	VALIDATE_NON_NEGATIVE(head_dep);
-
-#undef VALIDATE_NON_NEGATIVE
-
-
-	// ------------------------------------------------------------
-	// Names
-
-#define VALIDATE_STRING(field, length)                   \
-    do {                                                 \
-        OpResult r = validate_string(field, length);   \
-        if (r != OpResult::OK)                           \
-            return r;                                    \
-    } while (0)
-
-
-	VALIDATE_STRING(p.name, 61);
-	VALIDATE_STRING(p.shirt_name, 21);
-
-#undef VALIDATE_STRING
-
-	//if (p.b_base_copy && p.copy_id == 0)
-	//	return OpResult::VALIDATION_ERROR_INCONSISTENT;
-
-	return OpResult::OK;
-}
-
-
-EDITOR_EXPORT OpResult editor_validateSingleTeamEntry(editor_team_entry* team, uint8_t* version)
-{
-	if (!team)
-		return OpResult::VALIDATION_ERROR_NULL;
-
-	// ------------------------------------------------------------
-	// Names
-
-#define VALIDATE_STRING(field, length)                   \
-    do {                                                 \
-        OpResult r = validate_string(field, length);     \
-        if (r != OpResult::OK)                           \
-            return r;                                    \
-    } while (0)
-
-
-	VALIDATE_STRING(team->name, 70);
-	VALIDATE_STRING(team->short_name, 4);
-
-#undef VALIDATE_STRING
-
-	return OpResult::OK;
-}
-
-EDITOR_EXPORT OpResult editor_validateData(editor_player_entry* players, int numPlayers, editor_team_entry* teams, int numTeams, uint8_t* version)
-{
-	OpResult result = OpResult::OK;
-	for (int pi = 0; pi < numPlayers; pi++)
-	{
-		editor_player_entry* player = &players[pi];
-		result = editor_validateSinglePlayerEntry(player, version);
-		if (result != OpResult::OK)
-			return result;
-	}
-
-	for (int ti = 0; ti < numTeams; ti++)
-	{
-		editor_team_entry* team = &teams[ti];
-		result = editor_validateSingleTeamEntry(team, version);
-		if (result != OpResult::OK)
-			return result;
-	}
-
-	return result;
-}
-
-#pragma endregion
-
 #pragma region PES15
 
 EDITOR_EXPORT int read_player_entry15_export(editor_player_entry* out, int* current_byte, void* descriptor)
@@ -822,25 +478,32 @@ EDITOR_EXPORT int read_player_entry15_export(editor_player_entry* out, int* curr
 
 #pragma region PES17
 
-EDITOR_EXPORT OpResult editor_readFile17(const char* path, FileDescriptorOld** outDescriptor)
+EDITOR_EXPORT EditorOpResult editor_readFile17(const char* path, FileDescriptorOld** outDescriptor)
 {
 	uint8_t* pfin = NULL;
-	OpResult result = readFile(path, &pfin, NULL);
-	if (result != OpResult::OK)
+	EditorOpResult result = to_EditorOpResult(readFile(path, &pfin, NULL));
+	if (result != EditorOpResult::OK)
 		return result;
 
 	const uint8_t* masterKey17 = MasterKeyPes17;
-	FileDescriptorOld* descriptor = createFileDescriptorOld();
-	decryptWithKeyOld(descriptor, pfin, reinterpret_cast<const char*>(masterKey17));
+	FileDescriptorOld* descriptor = NULL;
+	result = to_EditorOpResult(createFileDescriptorOld(descriptor));
+	if (result != EditorOpResult::OK)
+		return result;
+
+	result = to_EditorOpResult(decryptWithKeyOld(descriptor, pfin, reinterpret_cast<const char*>(masterKey17)));
+	if (result != EditorOpResult::OK)
+		return result;
+
 	*outDescriptor = descriptor;
-	return OpResult::OK;
+	return EditorOpResult::OK;
 }
 
-EDITOR_EXPORT OpResult editor_loadData17(const char* path, FileDescriptorOld** outDescriptor, editor_player_entry** outPlayers, uint32_t* outNumPlayers, editor_team_entry** outTeams, uint32_t* outNumTeams)
+EDITOR_EXPORT EditorOpResult editor_loadData17(const char* path, FileDescriptorOld** outDescriptor, editor_player_entry** outPlayers, uint32_t* outNumPlayers, editor_team_entry** outTeams, uint32_t* outNumTeams)
 {
 	FileDescriptorOld* descriptor = NULL;
-	OpResult result = editor_readFile17(path, &descriptor);
-	if (result != OpResult::OK)
+	EditorOpResult result = editor_readFile17(path, &descriptor);
+	if (result != EditorOpResult::OK)
 		return result;
 
 	int num_players = descriptor->data[0x5C];
@@ -889,13 +552,13 @@ EDITOR_EXPORT OpResult editor_loadData17(const char* path, FileDescriptorOld** o
 	*outNumTeams = num_teams;
 	*outDescriptor = descriptor;
 
-	return OpResult::OK;
+	return EditorOpResult::OK;
 }
 
-EDITOR_EXPORT OpResult editor_saveData17(const char* path, FileDescriptorOld* descriptor, editor_player_entry* players, editor_team_entry* teams)
+EDITOR_EXPORT EditorOpResult editor_saveData17(const char* path, FileDescriptorOld* descriptor, editor_player_entry* players, editor_team_entry* teams)
 {
 	if (!path || !descriptor || !players || !teams)
-		return OpResult::INVALID_ARGUMENT;
+		return EditorOpResult::INVALID_ARGUMENT;
 
 	int num_players = descriptor->data[0x5C];
 	num_players += (descriptor->data[0x5D]) * 256;
@@ -931,13 +594,14 @@ EDITOR_EXPORT OpResult editor_saveData17(const char* path, FileDescriptorOld* de
 	}
 
 	int outputSize;
-	uint8_t* output;
+	uint8_t* output = NULL;
 	const uint8_t* masterKey17 = MasterKeyPes17;
-	output = encryptWithKeyOld(descriptor, &outputSize, reinterpret_cast<const char*>(masterKey17));
-	if (!output)
-		return OpResult::UNKNOWN;
+	EditorOpResult result = to_EditorOpResult(encryptWithKeyOld(descriptor, &outputSize, reinterpret_cast<const char*>(masterKey17), output));
+	if (result != EditorOpResult::OK)
+		return result;
 
-	return writeFile(path, output, outputSize);
+	result = to_EditorOpResult(writeFile(path, output, outputSize));
+	return result;
 }
 
 EDITOR_EXPORT int editor_fill_player_entry17(editor_player_entry* player, void* descriptor)
@@ -1039,25 +703,29 @@ EDITOR_EXPORT int editor_extract_team_tactics17(editor_team_entry* team, void* d
 
 #pragma region PES21
 
-EDITOR_EXPORT OpResult editor_readFile21(const char* path, FileDescriptorNew** outDescriptor)
+EDITOR_EXPORT EditorOpResult editor_readFile21(const char* path, FileDescriptorNew** outDescriptor)
 {
 	uint8_t* pfin = NULL;
-	OpResult result = readFile(path, &pfin, NULL);
-	if (result != OpResult::OK)
+	EditorOpResult result = to_EditorOpResult(readFile(path, &pfin, NULL));
+	if (result != EditorOpResult::OK)
 		return result;
 
 	const uint8_t* masterKey21 = MasterKeyPes21;
-	FileDescriptorNew* descriptor = createFileDescriptorNew();
-	decryptWithKeyNew(descriptor, pfin, reinterpret_cast<const char*>(masterKey21));
+	FileDescriptorNew* descriptor = NULL;
+	result = to_EditorOpResult(createFileDescriptorNew(descriptor));
+	if (result != EditorOpResult::OK)
+		return result;
+
+	result = to_EditorOpResult(decryptWithKeyNew(descriptor, pfin, reinterpret_cast<const char*>(masterKey21)));
 	*outDescriptor = descriptor;
-	return OpResult::OK;
+	return EditorOpResult::OK;
 }
 
-EDITOR_EXPORT OpResult editor_loadData21(const char* path, FileDescriptorNew** outDescriptor, editor_player_entry** outPlayers, uint32_t* outNumPlayers, editor_team_entry** outTeams, uint32_t* outNumTeams)
+EDITOR_EXPORT EditorOpResult editor_loadData21(const char* path, FileDescriptorNew** outDescriptor, editor_player_entry** outPlayers, uint32_t* outNumPlayers, editor_team_entry** outTeams, uint32_t* outNumTeams)
 {
 	FileDescriptorNew* descriptor = NULL;
-	OpResult result = editor_readFile21(path, &descriptor);
-	if (result != OpResult::OK)
+	EditorOpResult result = editor_readFile21(path, &descriptor);
+	if (result != EditorOpResult::OK)
 		return result;
 
 	int num_players = descriptor->data[96];
@@ -1106,13 +774,13 @@ EDITOR_EXPORT OpResult editor_loadData21(const char* path, FileDescriptorNew** o
 	*outNumTeams = num_teams;
 	*outDescriptor = descriptor;
 
-	return OpResult::OK;
+	return EditorOpResult::OK;
 }
 
-EDITOR_EXPORT OpResult editor_saveData21(const char* path, FileDescriptorNew* descriptor, editor_player_entry* players, editor_team_entry* teams)
+EDITOR_EXPORT EditorOpResult editor_saveData21(const char* path, FileDescriptorNew* descriptor, editor_player_entry* players, editor_team_entry* teams)
 {
 	if (!path || !descriptor || !players || !teams)
-		return OpResult::INVALID_ARGUMENT;
+		return EditorOpResult::INVALID_ARGUMENT;
 
 	int num_players = descriptor->data[96];
 	num_players += (descriptor->data[97]) * 256;
@@ -1148,13 +816,14 @@ EDITOR_EXPORT OpResult editor_saveData21(const char* path, FileDescriptorNew* de
 	}
 
 	int outputSize;
-	uint8_t* output;
+	uint8_t* output = NULL;
 	const uint8_t* masterKey21 = MasterKeyPes21;
-	output = encryptWithKeyNew(descriptor, &outputSize, reinterpret_cast<const char*>(masterKey21));
-	if (!output)
-		return OpResult::UNKNOWN;
+	EditorOpResult result = to_EditorOpResult(encryptWithKeyNew(descriptor, &outputSize, reinterpret_cast<const char*>(masterKey21), output));
+	if (result != EditorOpResult::OK)
+		return result;
 
-	return writeFile(path, output, outputSize);
+	result = to_EditorOpResult(writeFile(path, output, outputSize));
+	return result;
 }
 
 #pragma endregion

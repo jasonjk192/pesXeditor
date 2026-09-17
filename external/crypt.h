@@ -1,34 +1,15 @@
 /*
- * Originally derived from: https://github.com/the4chancup/pesXdecrypter
- * Modified by jasonjk192 (WinterCrestal) for this project.
- * The original code was released under the Unlicense given below
- */
-
-/*
-    This is free and unencumbered software released into the public domain.
-
-    Anyone is free to copy, modify, publish, use, compile, sell, or
-    distribute this software, either in source code form or as a compiled
-    binary, for any purpose, commercial or non-commercial, and by any
-    means.
-
-    In jurisdictions that recognize copyright laws, the author or authors
-    of this software dedicate any and all copyright interest in the
-    software to the public domain. We make this dedication for the benefit
-    of the public at large and to the detriment of our heirs and
-    successors. We intend this dedication to be an overt act of
-    relinquishment in perpetuity of all present and future rights to this
-    software under copyright law.
-
-    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
-    OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-    ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-    OTHER DEALINGS IN THE SOFTWARE.
-
-    For more information, please refer to <http://unlicense.org>
+ * This file contains code derived from:
+ *   https://github.com/the4chancup/pesXdecrypter
+ *   https://github.com/the4chancup/libpes15crypter
+ *
+ * The original pesXdecrypter code is released under the Unlicense.
+ * See licenses/LICENSE - pesXdecrypter.txt
+ *
+ * Code derived from libpes15crypter is Copyright (c) 2025 The 4chan Cup and is distributed under its accompanying license.
+ * See licenses/LICENSE - libpes15crypter.md
+ *
+ * This file has been modified from the original sources to integrate the decrypter implementations in this project.
  */
 
 #ifndef _CRYPT_H
@@ -118,7 +99,7 @@ struct FileDescriptor15
     uint8_t* data; //Main edit data (chunk 2)
 };
 
-typedef enum
+enum CrypterOpResult
 {
     UNKNOWN = -1, // Couldn't identify failure or a general failure
     OK = 0, // File read successfully.
@@ -126,16 +107,7 @@ typedef enum
     INVALID_ARGUMENT, // One or more arguments are invalid or null
     OPEN_FAILED, // Failed to open the file (with fopen)
     ALLOC_FAILED, // Failed to allocate memory for the file content (with malloc)
-
-    VALIDATION_ERROR_NULL,
-    VALIDATION_ERROR_BOOLEAN,
-    VALIDATION_ERROR_RANGE,
-    VALIDATION_ERROR_NEGATIVE,
-    VALIDATION_ERROR_STRING,
-    VALIDATION_ERROR_ID,
-    VALIDATION_ERROR_ENUM,
-    VALIDATION_ERROR_INCONSISTENT,
-} OpResult;
+};
 
 #pragma region Utility functions
 
@@ -148,19 +120,19 @@ uint32_t md5(uint8_t* input, int inputLen, uint8_t* computedHash);
 
 #pragma region Encrypt Decrypt functions
 
-struct FileDescriptorNew CRYPTER_EXPORT *createFileDescriptorNew();
+enum CrypterOpResult CRYPTER_EXPORT createFileDescriptorNew(struct FileDescriptorNew *outDesc);
 void CRYPTER_EXPORT destroyFileDescriptorNew(struct FileDescriptorNew *desc);
-struct FileDescriptorOld CRYPTER_EXPORT *createFileDescriptorOld();
+enum CrypterOpResult CRYPTER_EXPORT createFileDescriptorOld(struct FileDescriptorOld *outDesc);
 void CRYPTER_EXPORT destroyFileDescriptorOld(struct FileDescriptorOld *desc);
-struct FileDescriptor15 CRYPTER_EXPORT *createFileDescriptor15();
+enum CrypterOpResult CRYPTER_EXPORT createFileDescriptor15(struct FileDescriptor15 *outDesc);
 void CRYPTER_EXPORT destroyFileDescriptor15(struct FileDescriptor15 *desc);
 
-void CRYPTER_EXPORT decryptWithKeyNew(struct FileDescriptorNew *descriptor, const uint8_t *input, const char *masterKey);
-uint8_t CRYPTER_EXPORT *encryptWithKeyNew(const struct FileDescriptorNew *descriptor, int *size, const char *masterKey);
-void CRYPTER_EXPORT decryptWithKeyOld(struct FileDescriptorOld *descriptor, const uint8_t *input, const char *masterKey);
-uint8_t CRYPTER_EXPORT *encryptWithKeyOld(const struct FileDescriptorOld *descriptor, int *size, const char *masterKey);
-void CRYPTER_EXPORT decryptFile15(struct FileDescriptor15 *descriptor, const uint8_t *input);
-uint8_t CRYPTER_EXPORT *encryptFile15(const struct FileDescriptor15 *descriptor, int *outputLen);
+enum CrypterOpResult CRYPTER_EXPORT decryptWithKeyNew(struct FileDescriptorNew *descriptor, const uint8_t *input, const char *masterKey);
+enum CrypterOpResult CRYPTER_EXPORT encryptWithKeyNew(const struct FileDescriptorNew *descriptor, int *size, const char *masterKey, uint8_t* encryptedResult);
+enum CrypterOpResult CRYPTER_EXPORT decryptWithKeyOld(struct FileDescriptorOld *descriptor, const uint8_t *input, const char *masterKey);
+enum CrypterOpResult CRYPTER_EXPORT encryptWithKeyOld(const struct FileDescriptorOld *descriptor, int *size, const char *masterKey, uint8_t* encryptedResult);
+enum CrypterOpResult CRYPTER_EXPORT decryptFile15(struct FileDescriptor15 *descriptor, const uint8_t *input);
+enum CrypterOpResult CRYPTER_EXPORT encryptFile15(const struct FileDescriptor15 *descriptor, int *outputLen, uint8_t* encryptedResult);
 
 #pragma endregion
 
@@ -176,7 +148,7 @@ uint8_t CRYPTER_EXPORT *encryptFile15(const struct FileDescriptor15 *descriptor,
 /// <returns>
 /// An <c>OpResult</c> indicating the outcome
 /// </returns>
-OpResult CRYPTER_EXPORT readFile(const char *path, uint8_t** outData, uint32_t *sizePtr);
+enum CrypterOpResult CRYPTER_EXPORT readFile(const char *path, uint8_t** outData, uint32_t *sizePtr);
 
 /// <summary>
 /// Writes a binary buffer to a specified file path. Overwrites the file if it already exists.
@@ -187,7 +159,7 @@ OpResult CRYPTER_EXPORT readFile(const char *path, uint8_t** outData, uint32_t *
 /// <returns>
 /// An <c>OpResult</c> indicating the outcome
 /// </returns>
-OpResult CRYPTER_EXPORT writeFile(const char* path, const uint8_t* data, int size);
+enum CrypterOpResult CRYPTER_EXPORT writeFile(const char* path, const uint8_t* data, int size);
 
 #pragma endregion
 
