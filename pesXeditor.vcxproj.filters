@@ -45,7 +45,7 @@
     <ClCompile Include="dll\cache.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="dll\custom_format.cpp">
+    <ClCompile Include="dll\csv.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -65,7 +65,7 @@
     <ClInclude Include="dll\cache.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="dll\custom_format.h">
+    <ClInclude Include="dll\csv.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

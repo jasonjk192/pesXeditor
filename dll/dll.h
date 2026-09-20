@@ -18,12 +18,12 @@ extern "C" {
 
 	enum class EditorOpResult
 	{
-		UNKNOWN = CrypterOpResult::UNKNOWN,
-		OK = CrypterOpResult::OK,
-		READ_FILE_STAT_FAILED = CrypterOpResult::READ_FILE_STAT_FAILED,
-		INVALID_ARGUMENT = CrypterOpResult::INVALID_ARGUMENT,
-		OPEN_FAILED = CrypterOpResult::OPEN_FAILED,
-		ALLOC_FAILED = CrypterOpResult::ALLOC_FAILED,
+		UNKNOWN = -1,
+		OK = 0,
+		READ_FILE_STAT_FAILED,
+		INVALID_ARGUMENT,
+		OPEN_FAILED,
+		ALLOC_FAILED,
 
 		OUT_OF_RANGE,
 		NOT_FOUND,
@@ -208,7 +208,7 @@ extern "C" {
 		int32_t stadium_id;
 		uint16_t name[0x46]; // wchar_t name[0x46]. On Windows, wchar_t is 16-bit, so uint16_t is used here. This represents a UTF-16 string.
 		char short_name[0x4]; // 4-byte null-terminated short name
-		uint32_t players[40];
+		uint32_t players[40];  // contains the id of players
 		uint16_t numbers[40];
 
 		uint8_t b_edit_name;
@@ -217,7 +217,7 @@ extern "C" {
 		uint8_t b_edit_strip;
 
 		int32_t num_on_team;
-		int32_t starting11[11];
+		int32_t starting11[11];  // index of player in players array (rather than the actual player id)
 		int8_t captain_ind;
 
 		int8_t color1_red;
@@ -235,6 +235,7 @@ extern "C" {
 
 		editor_team_entry& operator=(const team_entry& src);
 		team_entry to_team_entry() const;
+		uint32_t* get_starting11_ids() const;
 
 	} editor_team_entry;
 

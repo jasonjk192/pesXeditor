@@ -17,3 +17,7 @@ This project incorporates code from the following third-party projects:
 
 &#x20;  See: [licenses/LICENSE - 4ccEditor.md](<licenses/LICENSE - 4ccEditor.md>)
 
+
+4\. [rapidcsv](https://github.com/d99kris/rapidcsv)
+
+&#x20;  See: [licenses/LICENSE - rapidcsv](<licenses/LICENSE - rapidcsv>)

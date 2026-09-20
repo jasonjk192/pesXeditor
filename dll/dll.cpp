@@ -1,8 +1,19 @@
 #include "dll.h"
+#include <iostream>
 
 inline static EditorOpResult to_EditorOpResult(CrypterOpResult r)
 {
-	return static_cast<EditorOpResult>(r);
+	switch (r)
+	{
+	case CrypterOpResult::UNKNOWN:               return EditorOpResult::UNKNOWN;
+	case CrypterOpResult::OK:                    return EditorOpResult::OK;
+	case CrypterOpResult::READ_FILE_STAT_FAILED: return EditorOpResult::READ_FILE_STAT_FAILED;
+	case CrypterOpResult::INVALID_ARGUMENT:      return EditorOpResult::INVALID_ARGUMENT;
+	case CrypterOpResult::OPEN_FAILED:           return EditorOpResult::OPEN_FAILED;
+	case CrypterOpResult::ALLOC_FAILED:          return EditorOpResult::ALLOC_FAILED;
+	default:
+		return EditorOpResult::UNKNOWN;
+	}
 }
 
 #pragma region Structs
@@ -431,6 +442,14 @@ team_entry editor_team_entry::to_team_entry() const
 	return dst;
 }
 
+uint32_t* editor_team_entry::get_starting11_ids() const
+{
+	uint32_t* player_ids = new uint32_t[11];
+	for (int pi = 0; pi < 11; pi++)
+		player_ids[pi] = players[starting11[pi]];
+	return player_ids;
+}
+
 #pragma endregion
 
 #pragma region General
@@ -438,7 +457,7 @@ team_entry editor_team_entry::to_team_entry() const
 EDITOR_EXPORT EditorOpResult editor_readFile(const char* path, uint8_t** outData, uint32_t* sizePtr)
 {
 	CrypterOpResult result = readFile(path, outData, sizePtr);
-	return static_cast<EditorOpResult>(result);
+	return to_EditorOpResult(result);
 }
 
 EDITOR_EXPORT void editor_freeData(editor_player_entry* players, editor_team_entry* teams)
@@ -483,19 +502,30 @@ EDITOR_EXPORT EditorOpResult editor_readFile17(const char* path, FileDescriptorO
 	uint8_t* pfin = NULL;
 	EditorOpResult result = to_EditorOpResult(readFile(path, &pfin, NULL));
 	if (result != EditorOpResult::OK)
+	{
+		freeData(pfin);
 		return result;
-
+	}
+		
 	const uint8_t* masterKey17 = MasterKeyPes17;
 	FileDescriptorOld* descriptor = NULL;
-	result = to_EditorOpResult(createFileDescriptorOld(descriptor));
+	result = to_EditorOpResult(createFileDescriptorOld(&descriptor));
 	if (result != EditorOpResult::OK)
+	{
+		freeData(pfin);
 		return result;
+	}
 
 	result = to_EditorOpResult(decryptWithKeyOld(descriptor, pfin, reinterpret_cast<const char*>(masterKey17)));
 	if (result != EditorOpResult::OK)
+	{
+		freeData(pfin);
 		return result;
+	}
 
 	*outDescriptor = descriptor;
+	freeData(pfin);
+
 	return EditorOpResult::OK;
 }
 
@@ -708,15 +738,28 @@ EDITOR_EXPORT EditorOpResult editor_readFile21(const char* path, FileDescriptorN
 	uint8_t* pfin = NULL;
 	EditorOpResult result = to_EditorOpResult(readFile(path, &pfin, NULL));
 	if (result != EditorOpResult::OK)
+	{
+		freeData(pfin);
 		return result;
+	}
 
 	const uint8_t* masterKey21 = MasterKeyPes21;
 	FileDescriptorNew* descriptor = NULL;
-	result = to_EditorOpResult(createFileDescriptorNew(descriptor));
+	result = to_EditorOpResult(createFileDescriptorNew(&descriptor));
 	if (result != EditorOpResult::OK)
+	{
+		freeData(pfin);
 		return result;
+	}
 
 	result = to_EditorOpResult(decryptWithKeyNew(descriptor, pfin, reinterpret_cast<const char*>(masterKey21)));
+	if (result != EditorOpResult::OK)
+	{
+		freeData(pfin);
+		return result;
+	}
+
+	freeData(pfin);
 	*outDescriptor = descriptor;
 	return EditorOpResult::OK;
 }
