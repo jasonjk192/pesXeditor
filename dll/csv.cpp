@@ -146,7 +146,13 @@ static std::unordered_map<std::string, size_t> make_csv_header_map(const rapidcs
 	return result;
 }
 
-static bool validate_csv_headers(const std::vector<std::string>& headers)
+static bool validate_players_csv_headers(const std::vector<std::string>& headers)
+{
+	// TODO: check headers
+	return true;
+}
+
+static bool validate_teams_csv_headers(const std::vector<std::string>& headers)
 {
 	// TODO: check headers
 	return true;
@@ -154,8 +160,20 @@ static bool validate_csv_headers(const std::vector<std::string>& headers)
 
 static void write_headers(rapidcsv::Document& doc, const std::vector<std::string>& headers)
 {
-	for (size_t i = 0; i < headers.size(); ++i) 
+	for (size_t i = 0; i < headers.size(); ++i)
 		doc.SetColumnName(i, headers[i]);
+}
+
+static bool write_schema_version_comment(const char* filePath, std::ofstream& outStream)
+{
+	/*if (!filePath || filePath[0] == '\0' || !outStream) 
+		return false;
+	
+	outStream << "# csv_schema: 1.0\n";
+	if (!outStream)
+		return false;*/
+
+	return true;
 }
 
 #pragma region EXPORT
@@ -442,10 +460,10 @@ static void write_team_data_header_csv(std::vector<std::string>& headers)
 		headers.push_back("numbers_" + std::to_string(i));
 	}
 
-	ADD_HEADER(b_edit_name);
-	ADD_HEADER(b_edit_shortname);
-	ADD_HEADER(b_edit_stadium);
-	ADD_HEADER(b_edit_strip);
+	//ADD_HEADER(b_edit_name);
+	//ADD_HEADER(b_edit_shortname);
+	//ADD_HEADER(b_edit_stadium);
+	//ADD_HEADER(b_edit_strip);
 
 	ADD_HEADER(num_on_team);
 
@@ -470,8 +488,8 @@ static void write_team_data_header_csv(std::vector<std::string>& headers)
 		headers.push_back("stripTeamId_" + std::to_string(i));
 	}
 
-	ADD_HEADER(b_changed);
-	ADD_HEADER(b_show);
+	//ADD_HEADER(b_changed);
+	//ADD_HEADER(b_show);
 
 #undef ADD_HEADER
 }
@@ -497,10 +515,10 @@ static void write_team_data_csv(std::vector<std::string>& row, const editor_team
 		row.push_back(std::to_string(team.numbers[i]));
 	}
 
-	ADD_VALUE(b_edit_name);
-	ADD_VALUE(b_edit_shortname);
-	ADD_VALUE(b_edit_stadium);
-	ADD_VALUE(b_edit_strip);
+	//ADD_VALUE(b_edit_name);
+	//ADD_VALUE(b_edit_shortname);
+	//ADD_VALUE(b_edit_stadium);
+	//ADD_VALUE(b_edit_strip);
 
 	ADD_VALUE(num_on_team);
 
@@ -525,8 +543,8 @@ static void write_team_data_csv(std::vector<std::string>& row, const editor_team
 		row.push_back(std::to_string(team.stripBlock[i].stripTeamId));
 	}
 
-	ADD_VALUE(b_changed);
-	ADD_VALUE(b_show);
+	//ADD_VALUE(b_changed);
+	//ADD_VALUE(b_show);
 
 #undef ADD_VALUE
 }
@@ -552,9 +570,22 @@ EDITOR_EXPORT EditorOpResult editor_export_player_csv(const uint32_t id, const e
 
 	try
 	{
+		std::ofstream outFile;
+		outFile.open(filePath);
+		if (!outFile.is_open())
+		{
+			return EditorOpResult::UNKNOWN;
+		}
+		if (!write_schema_version_comment(filePath, outFile))
+		{
+			outFile.close();
+			return EditorOpResult::UNKNOWN;
+		}
+
 		doc.SetRow(0, row);
 		write_headers(doc, headers);
-		doc.Save(filePath);
+		doc.Save(outFile);
+		outFile.close();
 	}
 	catch (...)
 	{
@@ -611,7 +642,20 @@ EDITOR_EXPORT EditorOpResult editor_export_players_csv(const uint32_t* ids, cons
 	delete[] playerIndices;
 	try
 	{
-		doc.Save(filePath);
+		std::ofstream outFile;
+		outFile.open(filePath);
+		if (!outFile.is_open())
+		{
+			return EditorOpResult::UNKNOWN;
+		}
+		if (!write_schema_version_comment(filePath, outFile))
+		{
+			outFile.close();
+			return EditorOpResult::UNKNOWN;
+		}
+
+		doc.Save(outFile);
+		outFile.close();
 	}
 	catch (...)
 	{
@@ -640,9 +684,22 @@ EDITOR_EXPORT EditorOpResult editor_export_team_csv(const uint32_t id, const edi
 
 	try
 	{
+		std::ofstream outFile;
+		outFile.open(filePath);
+		if (!outFile.is_open())
+		{
+			return EditorOpResult::UNKNOWN;
+		}
+		if (!write_schema_version_comment(filePath, outFile))
+		{
+			outFile.close();
+			return EditorOpResult::UNKNOWN;
+		}
+
 		doc.InsertRow(0, headers);
 		doc.InsertRow(1, row);
-		doc.Save(filePath);
+		doc.Save(outFile);
+		outFile.close();
 	}
 	catch (...)
 	{
@@ -669,7 +726,8 @@ EDITOR_EXPORT EditorOpResult editor_export_teams_csv(const uint32_t* ids, const 
 
 	try
 	{
-		doc.InsertRow(0, headers);
+		doc.SetRow(0, headers);
+		write_headers(doc, headers);
 	}
 	catch (...)
 	{
@@ -685,7 +743,7 @@ EDITOR_EXPORT EditorOpResult editor_export_teams_csv(const uint32_t* ids, const 
 		write_team_data_csv(row, team);
 		try
 		{
-			doc.SetRow(ti + 1, row);
+			doc.SetRow(ti, row);
 		}
 		catch (...)
 		{
@@ -698,7 +756,20 @@ EDITOR_EXPORT EditorOpResult editor_export_teams_csv(const uint32_t* ids, const 
 	delete[] teamIndices;
 	try
 	{
-		doc.Save(filePath);
+		std::ofstream outFile;
+		outFile.open(filePath);
+		if (!outFile.is_open())
+		{
+			return EditorOpResult::UNKNOWN;
+		}
+		if (!write_schema_version_comment(filePath, outFile))
+		{
+			outFile.close();
+			return EditorOpResult::UNKNOWN;
+		}
+
+		doc.Save(outFile);
+		outFile.close();
 	}
 	catch (...)
 	{
@@ -719,9 +790,8 @@ EDITOR_EXPORT EditorOpResult editor_export_team_players_csv(const uint32_t id, c
 
 	const editor_team_entry& team = teams[teamIndex];
 	const uint32_t* ids = team.players;
-	editor_export_players_csv(ids, players, team.num_on_team, cache, filePath);
-
-	return EditorOpResult::OK;
+	result = editor_export_players_csv(ids, players, team.num_on_team, cache, filePath);
+	return result;
 }
 
 EDITOR_EXPORT EditorOpResult editor_export_team_starting11_csv(const uint32_t id, const editor_team_entry* teams, const editor_player_entry* players, const editor_cache* cache, const char* filePath)
@@ -736,10 +806,10 @@ EDITOR_EXPORT EditorOpResult editor_export_team_starting11_csv(const uint32_t id
 
 	const editor_team_entry& team = teams[teamIndex];
 	uint32_t* ids = team.get_starting11_ids();
-	editor_export_players_csv(ids, players, 11, cache, filePath);
+	result = editor_export_players_csv(ids, players, 11, cache, filePath);
 
 	delete[] ids;
-	return EditorOpResult::OK;
+	return result;
 }
 
 #pragma endregion
@@ -754,7 +824,7 @@ EDITOR_EXPORT EditorOpResult editor_import_players_csv(editor_player_entry* play
 	rapidcsv::Document doc(filePath);
 
 	const auto headers = doc.GetColumnNames();
-	if (!validate_csv_headers(headers))
+	if (!validate_players_csv_headers(headers))
 		return EditorOpResult::UNKNOWN;
 
 	std::unordered_map<std::string, size_t> column_by_name;
@@ -822,14 +892,9 @@ EDITOR_EXPORT EditorOpResult editor_import_players_csv(editor_player_entry* play
 		editor_player_entry& player = players[playerIndex];
 		editor_player_export& data = player.data;
 
-#define IMPORT_U8(field) \
-		get_u8(row, #field, data.field)
-
-#define IMPORT_U32(field) \
-		get_u32(row, #field, data.field)
-
-#define IMPORT_I32(field) \
-		get_i32(row, #field, data.field)
+#define IMPORT_U8(field) get_u8(row, #field, data.field)
+#define IMPORT_U32(field) get_u32(row, #field, data.field)
+#define IMPORT_I32(field) get_i32(row, #field, data.field)
 
 		IMPORT_U32(nation);
 
@@ -991,7 +1056,162 @@ EDITOR_EXPORT EditorOpResult editor_import_teams_csv(editor_team_entry* teams, c
 
 	rapidcsv::Document doc(filePath);
 
-	//TODO: Parse team csv info
+	const auto headers = doc.GetColumnNames();
+	if (!validate_teams_csv_headers(headers))
+		return EditorOpResult::UNKNOWN;
+
+	std::unordered_map<std::string, size_t> column_by_name;
+	column_by_name.reserve(headers.size());
+
+	for (size_t i = 0; i < headers.size(); ++i)
+		column_by_name.emplace(headers[i], i);
+
+	auto find_column = [&](const std::string& name) -> int
+		{
+			auto it = column_by_name.find(name);
+			if (it == column_by_name.end())
+				return -1;
+			return static_cast<int>(it->second);
+		};
+
+	auto get_string = [&](size_t row, const std::string& name) -> std::string
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return {};
+			return doc.GetCell<std::string>(col, row);
+		};
+
+	auto get_u8 = [&](size_t row, const std::string& name, uint8_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			dst = static_cast<uint8_t>(doc.GetCell<unsigned int>(col, row));
+			return true;
+		};
+
+	auto get_u32 = [&](size_t row, const std::string& name, uint32_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			dst = doc.GetCell<uint32_t>(col, row);
+			return true;
+		};
+
+	auto get_i32 = [&](size_t row, const std::string& name, int32_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			dst = doc.GetCell<int32_t>(col, row);
+			return true;
+		};
+
+	auto get_i8 = [&](size_t row, const std::string& name, int8_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			try
+			{
+				dst = static_cast<int8_t>(doc.GetCell<int>(col, row));
+			}
+			catch (...)
+			{
+				return false;
+			}
+			return true;
+		};
+
+	auto get_u16 = [&](size_t row, const std::string& name, uint16_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			try
+			{
+				dst = static_cast<uint16_t>(doc.GetCell<unsigned int>(col, row));
+			}
+			catch (...)
+			{
+				return false;
+			}
+			return true;
+		};
+
+	const size_t row_count = doc.GetRowCount();
+
+	for (size_t row = 0; row < row_count; ++row)
+	{
+		uint32_t id = 0;
+		if (!get_u32(row, "id", id))
+			continue;
+
+		uint32_t teamIndex = -1;
+		EditorOpResult result = editor_teamIndexByID(cache, id, &teamIndex);
+		if (result != EditorOpResult::OK)
+			continue;
+
+		editor_team_entry& team = teams[teamIndex];
+
+#define IMPORT_U8(field) get_u8(row, #field, team.field)
+#define IMPORT_I8(field) get_i8(row, #field, team.field)
+#define IMPORT_U32(field) get_u32(row, #field, team.field)
+#define IMPORT_I32(field) get_i32(row, #field, team.field)
+
+		IMPORT_U32(manager_id);
+		IMPORT_I32(stadium_id);
+
+		IMPORT_I32(num_on_team);
+
+		IMPORT_I8(captain_ind);
+
+		IMPORT_I8(color1_red);
+		IMPORT_I8(color1_blue);
+		IMPORT_I8(color1_green);
+
+		IMPORT_I8(color2_red);
+		IMPORT_I8(color2_blue);
+		IMPORT_I8(color2_green);
+
+		const std::string name = get_string(row, "name");
+		if (!utf8_to_utf16(name, team.name, std::size(team.name)))
+		{
+			return EditorOpResult::UNKNOWN;
+		}
+
+		const std::string short_name = get_string(row, "short_name");
+		std::memset(team.short_name, 0, sizeof(team.short_name));
+		strncpy_s(team.short_name, short_name.c_str(), sizeof(team.short_name) - 1);
+
+		for (size_t i = 0; i < 40; ++i)
+		{
+			get_u32(row, "players_" + std::to_string(i), team.players[i]);
+		}
+		for (size_t i = 0; i < 40; ++i)
+		{
+			get_u16(row, "numbers_" + std::to_string(i), team.numbers[i]);
+		}
+
+		for (size_t i = 0; i < 11; ++i)
+		{
+			get_i32(row, "starting11_" + std::to_string(i), team.starting11[i]);
+		}
+		for (size_t i = 0; i < 10; ++i)
+		{
+			get_u8(row, "stripNumber_" + std::to_string(i), team.stripBlock[i].stripNumber);
+			get_u32(row, "stripTeamId_" + std::to_string(i), team.stripBlock[i].stripTeamId);
+		}
+
+#undef IMPORT_U8
+#undef IMPORT_I8
+#undef IMPORT_U32
+#undef IMPORT_I32
+
+		team.b_changed = 1;
+	}
 
 	return EditorOpResult::OK;
 }
