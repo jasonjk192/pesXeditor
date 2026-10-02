@@ -8,6 +8,16 @@ struct editor_cache
 	std::unordered_map<uint32_t, uint32_t> teamIndexByID;
 };
 
+class editor_cache_duplicate_id : public std::exception
+{
+public:
+	explicit editor_cache_duplicate_id(uint32_t id) : m_id(id) { }
+	uint32_t id() const noexcept { return m_id; }
+
+private:
+	uint32_t m_id;
+};
+
 EDITOR_EXPORT EditorOpResult editor_buildCache(const editor_player_entry* players, uint32_t numPlayers, const editor_team_entry* teams, uint32_t numTeams, editor_cache** outCache)
 {
 	if (!outCache || !players || !teams)
@@ -16,22 +26,29 @@ EDITOR_EXPORT EditorOpResult editor_buildCache(const editor_player_entry* player
 
 	try
 	{
-		editor_cache* cache = new editor_cache();
+		std::unique_ptr<editor_cache> cache = std::make_unique<editor_cache>();
+
 		cache->playerIndexByID.reserve(numPlayers);
 		cache->teamIndexByID.reserve(numTeams);
 
 		for (uint32_t i = 0; i < numPlayers; ++i)
 		{
-			cache->playerIndexByID[players[i].id] = i;
+			if (!cache->playerIndexByID.emplace(players[i].id, i).second)
+				throw editor_cache_duplicate_id(players[i].id);
 		}
 
 		for (uint32_t i = 0; i < numTeams; ++i)
 		{
-			cache->teamIndexByID[teams[i].id] = i;
+			if (!cache->teamIndexByID.emplace(teams[i].id, i).second)
+				throw editor_cache_duplicate_id(teams[i].id);
 		}
 
-		*outCache = cache;
+		*outCache = cache.release();
 		return EditorOpResult::OK;
+	}
+	catch (const editor_cache_duplicate_id&)
+	{
+		return EditorOpResult::CACHE_DUPLICATE_ID;
 	}
 	catch (const std::bad_alloc&)
 	{
@@ -50,7 +67,7 @@ EDITOR_EXPORT void editor_freeCache(editor_cache* cache)
 
 EDITOR_EXPORT EditorOpResult editor_playerIndexByID(const editor_cache* cache, uint32_t playerID, uint32_t* outIndex)
 {
-	if (!cache || !outIndex)
+	if (!cache || !outIndex || playerID == 0 || playerID == -1)
 		return EditorOpResult::INVALID_ARGUMENT;
 
 	const auto it = cache->playerIndexByID.find(playerID);
@@ -63,7 +80,7 @@ EDITOR_EXPORT EditorOpResult editor_playerIndexByID(const editor_cache* cache, u
 
 EDITOR_EXPORT EditorOpResult editor_teamIndexByID(const editor_cache* cache, uint32_t teamID, uint32_t* outIndex)
 {
-	if (!cache || !outIndex)
+	if (!cache || !outIndex || teamID == 0 || teamID == -1)
 		return EditorOpResult::INVALID_ARGUMENT;
 
 	const auto it = cache->teamIndexByID.find(teamID);

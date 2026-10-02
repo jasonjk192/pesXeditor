@@ -816,7 +816,7 @@ EDITOR_EXPORT EditorOpResult editor_export_team_starting11_csv(const uint32_t id
 
 #pragma region IMPORT
 
-EDITOR_EXPORT EditorOpResult editor_import_players_csv(editor_player_entry* players, const editor_cache* cache, const char* filePath)
+EDITOR_EXPORT EditorOpResult editor_import_players_csv_auto_merge(editor_player_entry* players, const editor_cache* cache, const char* filePath)
 {
 	if (!players || !cache || !filePath)
 		return EditorOpResult::INVALID_ARGUMENT;
@@ -1049,7 +1049,7 @@ EDITOR_EXPORT EditorOpResult editor_import_players_csv(editor_player_entry* play
 	return EditorOpResult::OK;
 }
 
-EDITOR_EXPORT EditorOpResult editor_import_teams_csv(editor_team_entry* teams, const editor_cache* cache, const char* filePath)
+EDITOR_EXPORT EditorOpResult editor_import_teams_csv_auto_merge(editor_team_entry* teams, const editor_cache* cache, const char* filePath)
 {
 	if (!teams || !cache || !filePath)
 		return EditorOpResult::INVALID_ARGUMENT;
@@ -1214,6 +1214,420 @@ EDITOR_EXPORT EditorOpResult editor_import_teams_csv(editor_team_entry* teams, c
 	}
 
 	return EditorOpResult::OK;
+}
+
+EDITOR_EXPORT EditorOpResult editor_import_players_csv(const char* filePath, const editor_player_entry** outPlayers, uint32_t* outNumPlayers)
+{
+	if (!filePath || !outPlayers || !outNumPlayers)
+		return EditorOpResult::INVALID_ARGUMENT;
+
+	rapidcsv::Document doc(filePath);
+
+	const auto headers = doc.GetColumnNames();
+	if (!validate_players_csv_headers(headers))
+		return EditorOpResult::UNKNOWN;
+
+	std::unordered_map<std::string, size_t> column_by_name;
+	column_by_name.reserve(headers.size());
+
+	for (size_t i = 0; i < headers.size(); ++i)
+		column_by_name.emplace(headers[i], i);
+
+	auto find_column = [&](const std::string& name) -> int
+		{
+			auto it = column_by_name.find(name);
+			if (it == column_by_name.end())
+				return -1;
+			return static_cast<int>(it->second);
+		};
+
+	auto get_string = [&](size_t row, const std::string& name) -> std::string
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return {};
+			return doc.GetCell<std::string>(col, row);
+		};
+
+	auto get_u8 = [&](size_t row, const std::string& name, uint8_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			dst = static_cast<uint8_t>(doc.GetCell<unsigned int>(col, row));
+			return true;
+		};
+
+	auto get_u32 = [&](size_t row, const std::string& name, uint32_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			dst = doc.GetCell<uint32_t>(col, row);
+			return true;
+		};
+
+	auto get_i32 = [&](size_t row, const std::string& name, int32_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			dst = doc.GetCell<int32_t>(col, row);
+			return true;
+		};
+
+	const size_t row_count = doc.GetRowCount();
+	std::vector<editor_player_entry> imported;
+
+	for (size_t row = 0; row < row_count; ++row)
+	{
+		uint32_t id = 0;
+		if (!get_u32(row, "id", id))
+			continue;
+
+		editor_player_entry player{};
+		player.id = id;
+		editor_player_export& data = player.data;
+
+#define IMPORT_U8(field) get_u8(row, #field, data.field)
+#define IMPORT_U32(field) get_u32(row, #field, data.field)
+#define IMPORT_I32(field) get_i32(row, #field, data.field)
+
+		IMPORT_U32(nation);
+
+		IMPORT_U8(height);
+		IMPORT_U8(weight);
+
+		IMPORT_U8(gc1);
+		IMPORT_U8(gc2);
+
+		IMPORT_U8(atk);
+		IMPORT_U8(def);
+		IMPORT_U8(gk);
+		IMPORT_U8(drib);
+
+		IMPORT_U8(mo_fk);
+		IMPORT_U8(finish);
+		IMPORT_U8(lowpass);
+		IMPORT_U8(loftpass);
+		IMPORT_U8(header);
+		IMPORT_U8(form);
+
+		IMPORT_U8(b_edit_player);
+
+		IMPORT_U8(swerve);
+		IMPORT_U8(catching);
+		IMPORT_U8(clearing);
+		IMPORT_U8(reflex);
+		IMPORT_U8(injury);
+
+		IMPORT_U8(b_edit_basicset);
+
+		IMPORT_U8(body_ctrl);
+		IMPORT_U8(phys_cont);
+		IMPORT_U8(kick_pwr);
+		IMPORT_U8(exp_pwr);
+
+		IMPORT_U8(mo_armd);
+
+		IMPORT_U8(b_edit_regpos);
+
+		IMPORT_U8(age);
+		IMPORT_U8(reg_pos);
+		IMPORT_U8(play_style);
+		IMPORT_U8(ball_ctrl);
+		IMPORT_U8(ball_win);
+		IMPORT_U8(weak_acc);
+		IMPORT_U8(jump);
+
+		IMPORT_U8(mo_armr);
+		IMPORT_U8(mo_ck);
+		IMPORT_U8(cover);
+		IMPORT_U8(weak_use);
+
+		IMPORT_U8(mo_hunchd);
+		IMPORT_U8(mo_hunchr);
+		IMPORT_U8(mo_pk);
+		IMPORT_U8(place_kick);
+
+		IMPORT_U8(star);
+		IMPORT_U8(mo_drib);
+		IMPORT_U8(tight_pos);
+		IMPORT_U8(aggres);
+		IMPORT_U8(play_attit);
+
+		IMPORT_U8(b_edit_playpos);
+		IMPORT_U8(b_edit_ability);
+		IMPORT_U8(b_edit_skill);
+
+		IMPORT_U8(stamina);
+		IMPORT_U8(speed);
+
+		IMPORT_U8(b_edit_style);
+		IMPORT_U8(b_edit_com);
+		IMPORT_U8(b_edit_motion);
+		IMPORT_U8(b_base_copy);
+
+		IMPORT_U8(strong_foot);
+		IMPORT_U8(strong_hand);
+
+		IMPORT_U32(boot_id);
+		IMPORT_U32(glove_id);
+		IMPORT_U32(copy_id);
+
+		IMPORT_I32(neck_len);
+		IMPORT_I32(neck_size);
+		IMPORT_I32(shldr_hi);
+		IMPORT_I32(shldr_wid);
+		IMPORT_I32(chest);
+		IMPORT_I32(waist);
+		IMPORT_I32(arm_size);
+		IMPORT_I32(arm_len);
+		IMPORT_I32(thigh);
+		IMPORT_I32(calf);
+		IMPORT_I32(leg_len);
+		IMPORT_I32(head_len);
+		IMPORT_I32(head_wid);
+		IMPORT_I32(head_dep);
+
+		IMPORT_U8(wrist_col_l);
+		IMPORT_U8(wrist_col_r);
+		IMPORT_U8(wrist_tape);
+		IMPORT_U8(spec_col);
+		IMPORT_U8(spec_style);
+		IMPORT_U8(sleeve);
+		IMPORT_U8(inners);
+		IMPORT_U8(socks);
+		IMPORT_U8(undershorts);
+
+		IMPORT_U8(untucked);
+		IMPORT_U8(ankle_tape);
+		IMPORT_U8(gloves);
+
+		IMPORT_U8(gloves_col);
+		IMPORT_U8(skin_col);
+		IMPORT_U8(iris_col);
+
+#undef IMPORT_U8
+#undef IMPORT_U32
+#undef IMPORT_I32
+
+		for (const auto& pos : play_pos_names)
+		{
+			const std::string column = "play_pos_" + std::string(pos.name);
+			get_u8(row, column, data.play_pos[pos.index]);
+		}
+
+		for (const auto& style : com_style_names)
+		{
+			const std::string column = "com_style_" + std::string(style.name);
+			get_u8(row, column, data.com_style[style.index]);
+		}
+
+		for (const auto& skill : play_skill_names)
+		{
+			const std::string column = "play_skill_" + std::string(skill.name);
+			get_u8(row, column, data.play_skill[skill.index]);
+		}
+
+		const std::string name = get_string(row, "name");
+		if (!utf8_to_utf16(name, data.name, std::size(data.name)))
+		{
+			return EditorOpResult::UNKNOWN;
+		}
+
+		const std::string shirt_name = get_string(row, "shirt_name");
+		std::memset(data.shirt_name, 0, sizeof(data.shirt_name));
+		strncpy_s(data.shirt_name, shirt_name.c_str(), sizeof(data.shirt_name) - 1);
+
+		player.b_changed = 1;
+		imported.push_back(player);
+	}
+
+	auto* players = new editor_player_entry[imported.size()];
+	std::copy(imported.begin(), imported.end(), players);
+	*outPlayers = players;
+	*outNumPlayers = imported.size();
+	return EditorOpResult::OK;
+}
+
+EDITOR_EXPORT EditorOpResult editor_import_teams_csv(const char* filePath, editor_team_entry** outTeams, uint32_t* outNumTeams)
+{
+	if (!filePath || !outTeams || !outNumTeams)
+		return EditorOpResult::INVALID_ARGUMENT;
+
+	rapidcsv::Document doc(filePath);
+
+	const auto headers = doc.GetColumnNames();
+	if (!validate_teams_csv_headers(headers))
+		return EditorOpResult::UNKNOWN;
+
+	std::unordered_map<std::string, size_t> column_by_name;
+	column_by_name.reserve(headers.size());
+
+	for (size_t i = 0; i < headers.size(); ++i)
+		column_by_name.emplace(headers[i], i);
+
+	auto find_column = [&](const std::string& name) -> int
+		{
+			auto it = column_by_name.find(name);
+			if (it == column_by_name.end())
+				return -1;
+			return static_cast<int>(it->second);
+		};
+
+	auto get_string = [&](size_t row, const std::string& name) -> std::string
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return {};
+			return doc.GetCell<std::string>(col, row);
+		};
+
+	auto get_u8 = [&](size_t row, const std::string& name, uint8_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			dst = static_cast<uint8_t>(doc.GetCell<unsigned int>(col, row));
+			return true;
+		};
+
+	auto get_u32 = [&](size_t row, const std::string& name, uint32_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			dst = doc.GetCell<uint32_t>(col, row);
+			return true;
+		};
+
+	auto get_i32 = [&](size_t row, const std::string& name, int32_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			dst = doc.GetCell<int32_t>(col, row);
+			return true;
+		};
+
+	auto get_i8 = [&](size_t row, const std::string& name, int8_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			try
+			{
+				dst = static_cast<int8_t>(doc.GetCell<int>(col, row));
+			}
+			catch (...)
+			{
+				return false;
+			}
+			return true;
+		};
+
+	auto get_u16 = [&](size_t row, const std::string& name, uint16_t& dst) -> bool
+		{
+			const int col = find_column(name);
+			if (col < 0)
+				return false;
+			try
+			{
+				dst = static_cast<uint16_t>(doc.GetCell<unsigned int>(col, row));
+			}
+			catch (...)
+			{
+				return false;
+			}
+			return true;
+		};
+
+	const size_t row_count = doc.GetRowCount();
+	std::vector<editor_team_entry> imported;
+
+	for (size_t row = 0; row < row_count; ++row)
+	{
+		uint32_t id = 0;
+		if (!get_u32(row, "id", id))
+			continue;
+
+		editor_team_entry team{};
+		team.id = id;
+
+#define IMPORT_U8(field) get_u8(row, #field, team.field)
+#define IMPORT_I8(field) get_i8(row, #field, team.field)
+#define IMPORT_U32(field) get_u32(row, #field, team.field)
+#define IMPORT_I32(field) get_i32(row, #field, team.field)
+
+		IMPORT_U32(manager_id);
+		IMPORT_I32(stadium_id);
+
+		IMPORT_I32(num_on_team);
+
+		IMPORT_I8(captain_ind);
+
+		IMPORT_I8(color1_red);
+		IMPORT_I8(color1_blue);
+		IMPORT_I8(color1_green);
+
+		IMPORT_I8(color2_red);
+		IMPORT_I8(color2_blue);
+		IMPORT_I8(color2_green);
+
+		const std::string name = get_string(row, "name");
+		if (!utf8_to_utf16(name, team.name, std::size(team.name)))
+		{
+			return EditorOpResult::UNKNOWN;
+		}
+
+		const std::string short_name = get_string(row, "short_name");
+		std::memset(team.short_name, 0, sizeof(team.short_name));
+		strncpy_s(team.short_name, short_name.c_str(), sizeof(team.short_name) - 1);
+
+		for (size_t i = 0; i < 40; ++i)
+		{
+			get_u32(row, "players_" + std::to_string(i), team.players[i]);
+		}
+		for (size_t i = 0; i < 40; ++i)
+		{
+			get_u16(row, "numbers_" + std::to_string(i), team.numbers[i]);
+		}
+
+		for (size_t i = 0; i < 11; ++i)
+		{
+			get_i32(row, "starting11_" + std::to_string(i), team.starting11[i]);
+		}
+		for (size_t i = 0; i < 10; ++i)
+		{
+			get_u8(row, "stripNumber_" + std::to_string(i), team.stripBlock[i].stripNumber);
+			get_u32(row, "stripTeamId_" + std::to_string(i), team.stripBlock[i].stripTeamId);
+		}
+
+#undef IMPORT_U8
+#undef IMPORT_I8
+#undef IMPORT_U32
+#undef IMPORT_I32
+
+		team.b_changed = 1;
+		imported.push_back(team);
+	}
+
+	auto* teams = new editor_team_entry[imported.size()];
+	std::copy(imported.begin(), imported.end(), teams);
+	*outTeams = teams;
+	*outNumTeams = imported.size();
+	return EditorOpResult::OK;
+}
+
+EDITOR_EXPORT void free_imported_players(const editor_player_entry* importedPlayers)
+{
+	if(importedPlayers) delete[] importedPlayers;
+}
+
+EDITOR_EXPORT void free_imported_teams(const editor_team_entry* importedTeams)
+{
+	if (importedTeams) delete[] importedTeams;
 }
 
 #pragma endregion

@@ -36,9 +36,13 @@ extern "C" {
 		VALIDATION_ERROR_ID,
 		VALIDATION_ERROR_ENUM,
 		VALIDATION_ERROR_INCONSISTENT,
+
+		CACHE_DUPLICATE_ID,
 	};
 
 #pragma region Structs
+
+	typedef struct editor_cache editor_cache;
 
 	typedef struct editor_player_export
 	{
@@ -249,6 +253,8 @@ extern "C" {
 	EDITOR_EXPORT void editor_freeDescriptorOld(FileDescriptorOld* descriptor);
 	EDITOR_EXPORT void editor_freeDescriptor15(FileDescriptor15* descriptor);
 
+	EDITOR_EXPORT EditorOpResult editor_replace_players(editor_player_entry* players, editor_player_entry* newPlayers, uint8_t numPlayers, editor_cache* cache);
+	EDITOR_EXPORT EditorOpResult editor_replace_teams(editor_team_entry* teams, editor_team_entry* newTeams, uint8_t numTeams, editor_cache* cache);
 	
 #pragma endregion
 

@@ -15,6 +15,7 @@ extern "C" {
 typedef struct editor_cache editor_cache;
 EDITOR_EXPORT EditorOpResult editor_buildCache(const editor_player_entry* players, uint32_t numPlayers, const editor_team_entry* teams, uint32_t numTeams, editor_cache** outCache);
 EDITOR_EXPORT void editor_freeCache(editor_cache* cache);
+
 EDITOR_EXPORT EditorOpResult editor_playerIndexByID(const editor_cache* cache, uint32_t playerID, uint32_t* outIndex);
 EDITOR_EXPORT EditorOpResult editor_teamIndexByID(const editor_cache* cache, uint32_t teamID, uint32_t* outIndex);
 EDITOR_EXPORT EditorOpResult editor_playerIndicesByIDs(const editor_cache* cache, const uint32_t* playerIDs, uint32_t count, uint32_t* outIndices);

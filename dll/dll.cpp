@@ -1,5 +1,6 @@
 #include "dll.h"
 #include <iostream>
+#include "cache.h"
 
 inline static EditorOpResult to_EditorOpResult(CrypterOpResult r)
 {
@@ -479,6 +480,42 @@ EDITOR_EXPORT void editor_freeDescriptorOld(FileDescriptorOld* descriptor)
 EDITOR_EXPORT void editor_freeDescriptor15(FileDescriptor15* descriptor)
 {
 	destroyFileDescriptor15(descriptor);
+}
+
+EDITOR_EXPORT EditorOpResult editor_replace_players(editor_player_entry* players, editor_player_entry* newPlayers, uint8_t numPlayers, editor_cache* cache)
+{
+	if (!players || !newPlayers || !cache)
+		return EditorOpResult::INVALID_ARGUMENT;
+
+	for (int pi = 0; pi < numPlayers; pi++)
+	{
+		auto playerToMerge = newPlayers[pi];
+		uint32_t index = -1;
+		EditorOpResult result = editor_playerIndexByID(cache, playerToMerge.id, &index);
+		if (result != EditorOpResult::OK)
+			continue;
+		players[index] = playerToMerge;
+	}
+
+	return EditorOpResult::OK;
+}
+
+EDITOR_EXPORT EditorOpResult editor_replace_teams(editor_team_entry* teams, editor_team_entry* newTeams, uint8_t numTeams, editor_cache* cache)
+{
+	if (!teams || !newTeams || !cache)
+		return EditorOpResult::INVALID_ARGUMENT;
+
+	for (int pi = 0; pi < numTeams; pi++)
+	{
+		auto teamToMerge = newTeams[pi];
+		uint32_t index = -1;
+		EditorOpResult result = editor_teamIndexByID(cache, teamToMerge.id, &index);
+		if (result != EditorOpResult::OK)
+			continue;
+		teams[index] = teamToMerge;
+	}
+
+	return EditorOpResult::OK;
 }
 
 #pragma region PES15
