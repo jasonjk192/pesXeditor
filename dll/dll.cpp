@@ -482,7 +482,7 @@ EDITOR_EXPORT void editor_freeDescriptor15(FileDescriptor15* descriptor)
 	destroyFileDescriptor15(descriptor);
 }
 
-EDITOR_EXPORT EditorOpResult editor_replace_players(editor_player_entry* players, editor_player_entry* newPlayers, uint8_t numPlayers, editor_cache* cache)
+EDITOR_EXPORT EditorOpResult editor_replace_players(editor_player_entry* players, editor_player_entry* newPlayers, const uint8_t numPlayers, const editor_cache* cache)
 {
 	if (!players || !newPlayers || !cache)
 		return EditorOpResult::INVALID_ARGUMENT;
@@ -500,7 +500,7 @@ EDITOR_EXPORT EditorOpResult editor_replace_players(editor_player_entry* players
 	return EditorOpResult::OK;
 }
 
-EDITOR_EXPORT EditorOpResult editor_replace_teams(editor_team_entry* teams, editor_team_entry* newTeams, uint8_t numTeams, editor_cache* cache)
+EDITOR_EXPORT EditorOpResult editor_replace_teams(editor_team_entry* teams, editor_team_entry* newTeams, const uint8_t numTeams, const editor_cache* cache)
 {
 	if (!teams || !newTeams || !cache)
 		return EditorOpResult::INVALID_ARGUMENT;

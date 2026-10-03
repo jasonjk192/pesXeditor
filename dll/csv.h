@@ -30,7 +30,7 @@ EDITOR_EXPORT EditorOpResult editor_import_players_csv_auto_merge(editor_player_
 EDITOR_EXPORT EditorOpResult editor_import_teams_csv_auto_merge(editor_team_entry* teams, const editor_cache* cache, const char* filePath);
 
 // imports new players without affecting the original existing players
-EDITOR_EXPORT EditorOpResult editor_import_players_csv(const char* filePath, const editor_player_entry** outPlayers, uint32_t* outNumPlayers);
+EDITOR_EXPORT EditorOpResult editor_import_players_csv(const char* filePath, editor_player_entry** outPlayers, uint32_t* outNumPlayers);
 // imports new teams without affecting the original existing teams
 EDITOR_EXPORT EditorOpResult editor_import_teams_csv(const char* filePath, editor_team_entry** outTeams, uint32_t* outNumTeams);
 
