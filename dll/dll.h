@@ -6,10 +6,18 @@
 #include "../src/editor.h"
 #include <stdint.h>
 
-#ifdef _WIN32
-#define EDITOR_EXPORT __declspec(dllexport)
+#if defined(_LIB) || defined(STATIC_BUILD)
+	#define EDITOR_EXPORT
 #else
-#define EDITOR_EXPORT __attribute__((visibility("default")))
+	#ifdef _WIN32
+		#if defined(BUILDING_DLL) || defined(PESXEDITOR_EXPORTS) || defined(_USRDLL)
+			#define EDITOR_EXPORT __declspec(dllexport)
+		#else
+			#define EDITOR_EXPORT __declspec(dllimport)
+		#endif
+	#else
+		#define EDITOR_EXPORT __attribute__((visibility("default")))
+	#endif
 #endif
 
 #ifdef __cplusplus
