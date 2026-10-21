@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include "masterkey.h"
 #include "crypt.h"
 
@@ -19,6 +20,13 @@
 		#define EDITOR_EXPORT __attribute__((visibility("default")))
 	#endif
 #endif
+
+#ifdef _DEBUG
+#define DEBUG_PRINT(x) std::cout << "[DEBUG] " << x << std::endl
+#else
+#define DEBUG_PRINT(x) 
+#endif
+
 
 #ifdef __cplusplus
 extern "C" {

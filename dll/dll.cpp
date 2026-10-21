@@ -663,11 +663,15 @@ EDITOR_EXPORT EditorOpResult editor_saveData17(const char* path, FileDescriptorO
 	int outputSize;
 	uint8_t* output = NULL;
 	const uint8_t* masterKey17 = MasterKeyPes17;
-	EditorOpResult result = to_EditorOpResult(encryptWithKeyOld(descriptor, &outputSize, reinterpret_cast<const char*>(masterKey17), output));
+	EditorOpResult result = to_EditorOpResult(encryptWithKeyOld(descriptor, &outputSize, reinterpret_cast<const char*>(masterKey17), &output));
 	if (result != EditorOpResult::OK)
+	{
+		freeData(output);
 		return result;
-
+	}
+		
 	result = to_EditorOpResult(writeFile(path, output, outputSize));
+	freeData(output);
 	return result;
 }
 
@@ -898,11 +902,15 @@ EDITOR_EXPORT EditorOpResult editor_saveData21(const char* path, FileDescriptorN
 	int outputSize;
 	uint8_t* output = NULL;
 	const uint8_t* masterKey21 = MasterKeyPes21;
-	EditorOpResult result = to_EditorOpResult(encryptWithKeyNew(descriptor, &outputSize, reinterpret_cast<const char*>(masterKey21), output));
+	EditorOpResult result = to_EditorOpResult(encryptWithKeyNew(descriptor, &outputSize, reinterpret_cast<const char*>(masterKey21), &output));
 	if (result != EditorOpResult::OK)
+	{
+		freeData(output);
 		return result;
+	}
 
 	result = to_EditorOpResult(writeFile(path, output, outputSize));
+	freeData(output);
 	return result;
 }
 

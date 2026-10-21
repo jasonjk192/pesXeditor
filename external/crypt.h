@@ -128,11 +128,11 @@ enum CrypterOpResult CRYPTER_EXPORT createFileDescriptor15(struct FileDescriptor
 void CRYPTER_EXPORT destroyFileDescriptor15(struct FileDescriptor15 *desc);
 
 enum CrypterOpResult CRYPTER_EXPORT decryptWithKeyNew(struct FileDescriptorNew *descriptor, const uint8_t *input, const char *masterKey);
-enum CrypterOpResult CRYPTER_EXPORT encryptWithKeyNew(const struct FileDescriptorNew *descriptor, int *size, const char *masterKey, uint8_t* encryptedResult);
+enum CrypterOpResult CRYPTER_EXPORT encryptWithKeyNew(const struct FileDescriptorNew *descriptor, int *size, const char *masterKey, uint8_t** encryptedResult);
 enum CrypterOpResult CRYPTER_EXPORT decryptWithKeyOld(struct FileDescriptorOld *descriptor, const uint8_t *input, const char *masterKey);
-enum CrypterOpResult CRYPTER_EXPORT encryptWithKeyOld(const struct FileDescriptorOld *descriptor, int *size, const char *masterKey, uint8_t* encryptedResult);
+enum CrypterOpResult CRYPTER_EXPORT encryptWithKeyOld(const struct FileDescriptorOld *descriptor, int *size, const char *masterKey, uint8_t** encryptedResult);
 enum CrypterOpResult CRYPTER_EXPORT decryptFile15(struct FileDescriptor15 *descriptor, const uint8_t *input);
-enum CrypterOpResult CRYPTER_EXPORT encryptFile15(const struct FileDescriptor15 *descriptor, int *outputLen, uint8_t* encryptedResult);
+enum CrypterOpResult CRYPTER_EXPORT encryptFile15(const struct FileDescriptor15 *descriptor, int *outputLen, uint8_t** encryptedResult);
 
 #pragma endregion
 
